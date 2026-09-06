@@ -15,16 +15,18 @@ app.use('/api', mainRouter);
 
 app.use(errorHandler);
 
+const PORT = process.env.PORT || 3888;
+
 async function startServer() {
   try {
     const connection = await db.getConnection();
     connection.release();
 
-    app.listen(3888, err => {
+    app.listen(PORT, err => {
       if (err) {
         throw err;
       }
-      console.log('Server is running on port http://localhost:3888');
+      console.log(`Server is running on port ${PORT}`);
     });
   } catch (error) {
     console.error('Error starting server:', error.message);
