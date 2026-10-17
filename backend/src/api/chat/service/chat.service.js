@@ -11,11 +11,11 @@ export const getRecentConversationRows = async (limit = 5) => {
       ? 20
       : normalizedLimit;
 
-  const [rows] = await db.execute(
+  const { rows } = await db.query(
     `SELECT id, role, content, token_count, created_at
-     FROM conversations
+     FROM chat_conversations
      ORDER BY id DESC
-     LIMIT ?`,
+     LIMIT $1`,
     [safeLimit],
   );
 
@@ -23,8 +23,8 @@ export const getRecentConversationRows = async (limit = 5) => {
 };
 
 const getMessageById = async (messageId) => {
-  const [rows] = await db.execute(
-    'SELECT id, role, content, token_count, created_at FROM conversations WHERE id = ? LIMIT 1',
+  const { rows } = await db.query(
+    'SELECT id, role, content, token_count, created_at FROM chat_conversations WHERE id = $1 LIMIT 1',
     [messageId],
   );
 
@@ -70,8 +70,8 @@ export async function createConversationService(question) {
   const historyRows = await getRecentConversationRows(5);
 
   // 2. Insert the new user question (token count not known yet, so null)
-  const [result] = await db.execute(
-    'INSERT INTO conversations (role, content, token_count) VALUES (?, ?, ?)',
+  const userInsert = await db.query(
+    'INSERT INTO chat_conversations (role, content, token_count) VALUES ($1, $2, $3) RETURNING id',
     ['user', question, null],
   );
 
@@ -82,15 +82,15 @@ export async function createConversationService(question) {
   });
 
   // 4. Save the assistant's reply along with token usage
-  const [createAssistantMessageResult] = await db.execute(
-    'INSERT INTO conversations (role, content, token_count) VALUES (?, ?, ?)',
+  const assistantInsert = await db.query(
+    'INSERT INTO chat_conversations (role, content, token_count) VALUES ($1, $2, $3) RETURNING id',
     ['assistant', text, totalTokens],
   );
 
   // 5. Fetch the freshly inserted user and assistant rows by their IDs
-  const userConversation = await getMessageById(result.insertId);
+  const userConversation = await getMessageById(userInsert.rows[0].id);
   const assistantConversation = await getMessageById(
-    createAssistantMessageResult.insertId,
+    assistantInsert.rows[0].id,
   );
 
   // 6. Fetch updated conversation history including both new records

@@ -29,7 +29,6 @@ export async function getConversationsController(req, res, next) {
 
 
 
-    res.send('get conversations api');
   } catch (error) {
     next(error);
   }

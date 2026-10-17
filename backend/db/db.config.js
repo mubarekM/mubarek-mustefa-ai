@@ -1,14 +1,18 @@
-import mysql from "mysql2/promise";
+import pg from "pg";
 
-const db = mysql.createPool({
-  host: process.env.DB_HOST || "localhost",
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_DATABASE,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+const { Pool, types } = pg;
+
+// Return big numbers (ids) as normal numbers, like MySQL did
+types.setTypeParser(20, (value) => Number(value));
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  max: 1,
 });
+
+const db = {
+  query: (text, params) => pool.query(text, params),
+};
 
 export default db;
